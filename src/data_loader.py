@@ -1,0 +1,83 @@
+"""Load and validate the uploaded exam workbook."""
+from __future__ import annotations
+
+import pandas as pd
+
+REQUIRED_GRADING_COLUMNS = {"Student", "Exam A or B?"}
+QUESTION_COLUMNS = list(range(1, 51))
+
+
+class WorkbookValidationError(Exception):
+    """Raised when the uploaded workbook doesn't match the expected shape."""
+
+
+def _rename_question_columns(df: pd.DataFrame) -> pd.DataFrame:
+    rename = {}
+    for c in df.columns:
+        s = str(c).strip()
+        if s.isdigit() and 1 <= int(s) <= 50:
+            rename[c] = int(s)
+    return df.rename(columns=rename)
+
+
+def load_grading_sheet(file, exam_number: int) -> pd.DataFrame:
+    sheet_name = f"Exam {exam_number} Grading"
+    try:
+        # keep_default_na=False is required: pandas otherwise treats the
+        # literal "NA" answers teachers fill in for blanks as real NaN.
+        df = pd.read_excel(file, sheet_name=sheet_name, keep_default_na=False)
+    except ValueError as exc:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' was not found in the uploaded workbook."
+        ) from exc
+
+    df.columns = [str(c).strip() for c in df.columns]
+    df = _rename_question_columns(df)
+
+    missing = REQUIRED_GRADING_COLUMNS - set(df.columns)
+    if missing:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' is missing required column(s): {', '.join(sorted(missing))}"
+        )
+
+    missing_questions = [q for q in QUESTION_COLUMNS if q not in df.columns]
+    if missing_questions:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' is missing question column(s): {missing_questions}"
+        )
+
+    if "Total" in df.columns:
+        df = df.drop(columns=["Total"])
+
+    return df
+
+
+def load_reference_sheet(file, exam_number: int) -> pd.DataFrame:
+    sheet_name = f"Exam {exam_number} Reference"
+    try:
+        df = pd.read_excel(file, sheet_name=sheet_name)
+    except ValueError as exc:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' was not found in the uploaded workbook."
+        ) from exc
+
+    df.columns = [str(c).strip() for c in df.columns]
+
+    required = {
+        "A - Questions",
+        f"Exam {exam_number}A Answer",
+        "B - Questions",
+        f"Exam {exam_number}B Answer",
+    }
+    missing = required - set(df.columns)
+    if missing:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' is missing required column(s): {', '.join(sorted(missing))}"
+        )
+
+    if len(df) != 50:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' should have 50 rows (one per question), found {len(df)}."
+        )
+
+    return df
