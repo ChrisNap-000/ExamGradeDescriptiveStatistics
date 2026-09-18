@@ -15,7 +15,7 @@ import pytest
 
 from src.data_loader import load_grading_sheet, load_reference_sheet, WorkbookValidationError
 from src.grading import build_correctness_mask, score_grading_sheet
-from src.item_analysis import question_difficulty
+from src.item_analysis import option_selection_breakdown, question_difficulty
 from src.reference import build_answer_keys
 
 EXAM_NUMBER = 1
@@ -103,6 +103,56 @@ def test_question_difficulty_combines_versions_and_carries_tooltip_fields():
     assert row_q1["Exam A Answer"] == "A"
     assert row_q1["Exam B Question Number"] == _b_question(1)
     assert row_q1["Exam B Answer"] == "B"
+
+
+def _breakdown_row(breakdown: pd.DataFrame, a_q: int, version: str, option: str) -> pd.Series:
+    match = breakdown[
+        (breakdown["Exam A Question Number"] == a_q)
+        & (breakdown["Version"] == version)
+        & (breakdown["Option"] == option)
+    ]
+    return match.iloc[0]
+
+
+def test_option_selection_breakdown_splits_by_version_and_flags_correct_option():
+    keys = build_answer_keys(_reference_df(), EXAM_NUMBER)
+    graded = score_grading_sheet(_grading_df(), keys)
+    breakdown = option_selection_breakdown(graded, keys)
+
+    # Every canonical question x version combo carries all 6 option buckets
+    # (A/B/C/D/E/NA), even ones nobody picked, so stacked-bar segments align.
+    assert len(breakdown) == 50 * 2 * 6
+
+    row = _breakdown_row(breakdown, 1, "A", "A")
+    assert row["Count"] == 2
+    assert row["Total"] == 2
+    assert row["Percent"] == pytest.approx(100.0)
+    assert row["Is Correct"]
+
+    row = _breakdown_row(breakdown, 1, "B", "B")
+    assert row["Count"] == 1
+    assert row["Total"] == 1
+    assert row["Is Correct"]
+
+    # Carol's stray "X" answers land in "NA" (graded incorrect) rather than dropped
+    na_row = _breakdown_row(breakdown, 26, "A", "NA")
+    assert na_row["Count"] == 1
+    assert na_row["Total"] == 2
+    assert na_row["Percent"] == pytest.approx(50.0)
+    assert not na_row["Is Correct"]
+
+    correct_row = _breakdown_row(breakdown, 26, "A", "A")
+    assert correct_row["Count"] == 1
+    assert correct_row["Is Correct"]
+
+    # Rows are keyed by canonical (Exam A) question number on both versions, so
+    # a chart plotting x="Exam A Question Number" lines up the same underlying
+    # question across the Exam A and Exam B rows; "Native Question Number" is
+    # each version's own numbering, from the reference-sheet mapping.
+    a_row = _breakdown_row(breakdown, 1, "A", "A")
+    b_row = _breakdown_row(breakdown, 1, "B", "B")
+    assert a_row["Native Question Number"] == 1
+    assert b_row["Native Question Number"] == _b_question(1)
 
 
 def test_load_grading_sheet_preserves_literal_na():

@@ -9,11 +9,11 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from src.charts import difficulty_bar_chart, totals_boxplot, totals_histogram
+from src.charts import difficulty_bar_chart, option_breakdown_chart, totals_boxplot, totals_histogram
 from src.data_loader import WorkbookValidationError, load_grading_sheet, load_reference_sheet
 from src.descriptive_stats import compute_kpis
 from src.grading import QUESTION_COLUMNS, build_correctness_mask, score_grading_sheet
-from src.item_analysis import question_difficulty
+from src.item_analysis import option_selection_breakdown, question_difficulty
 from src.reference import build_answer_keys
 
 st.set_page_config(page_title="Exam Grade Descriptive Statistics", page_icon="\U0001F4CA", layout="wide")
@@ -100,6 +100,20 @@ with tab_stats:
     )
     difficulty_df = question_difficulty(graded_df, keys)
     st.plotly_chart(difficulty_bar_chart(difficulty_df), use_container_width=True)
+
+    st.subheader("Answer Choice Breakdown")
+    st.caption(
+        "Shown separately per exam version, since Exam A and Exam B shuffle "
+        "answer choices — option \"C\" on one version isn't necessarily the "
+        "same distractor as option \"C\" on the other. Both rows share the "
+        "same x-axis via the answer-key mapping, so the bar under a given "
+        "number is always the same underlying question on both rows — hover "
+        "an Exam B bar to see its own native question number. The checkmark "
+        "marks each question's correct option; \"No Answer\" (graded "
+        "incorrect) covers blanks."
+    )
+    breakdown_df = option_selection_breakdown(graded_df, keys)
+    st.plotly_chart(option_breakdown_chart(breakdown_df), use_container_width=True)
 
 with tab_detail:
     st.caption("Unmasked — for your own reference only. Green = correct, red = incorrect.")
