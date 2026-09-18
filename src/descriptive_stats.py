@@ -4,16 +4,23 @@ from __future__ import annotations
 import pandas as pd
 
 
+def _format_number(value: float) -> str:
+    rounded = round(value, 1)
+    if rounded == int(rounded):
+        return f"{int(rounded)}"
+    return f"{rounded:.1f}"
+
+
 def compute_kpis(totals: pd.Series) -> dict[str, str]:
     modes = totals.mode()
-    mode_display = ", ".join(str(m) for m in modes.tolist())
+    mode_display = ", ".join(_format_number(m) for m in modes.tolist())
 
     return {
-        "Mean": f"{totals.mean():.2f}",
-        "Median": f"{totals.median():.2f}",
+        "Mean": _format_number(totals.mean()),
+        "Median": _format_number(totals.median()),
         "Mode": mode_display,
-        "Min": f"{totals.min():.0f}",
-        "Max": f"{totals.max():.0f}",
-        "Range": f"{totals.max() - totals.min():.0f}",
-        "Std Dev": f"{totals.std(ddof=1):.2f}",
+        "Min": _format_number(totals.min()),
+        "Max": _format_number(totals.max()),
+        "Range": _format_number(totals.max() - totals.min()),
+        "Std Dev": _format_number(totals.std(ddof=1)),
     }
