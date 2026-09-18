@@ -32,6 +32,8 @@ def question_difficulty(graded_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFra
                 "Percent Correct": (
                     correct_counts[a_q] / total_counts[a_q] * 100 if total_counts[a_q] else 0.0
                 ),
+                "Number Correct": correct_counts[a_q],
+                "Number of Students": total_counts[a_q],
             }
         )
     return pd.DataFrame(records).sort_values(
