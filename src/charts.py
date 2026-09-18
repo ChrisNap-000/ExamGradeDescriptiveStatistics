@@ -81,10 +81,18 @@ def difficulty_bar_chart(difficulty_df: pd.DataFrame) -> go.Figure:
     """Bars ordered left-to-right by Exam A question number.
 
     The hover tooltip carries the full picture for that question: its
-    number and correct answer on each version, plus percent correct.
+    number and correct answer on each version, plus percent correct and
+    the raw count of students who answered correctly.
     """
     customdata = difficulty_df[
-        ["Exam A Question Number", "Exam A Answer", "Exam B Question Number", "Exam B Answer"]
+        [
+            "Exam A Question Number",
+            "Exam A Answer",
+            "Exam B Question Number",
+            "Exam B Answer",
+            "Number Correct",
+            "Number of Students",
+        ]
     ].to_numpy()
 
     fig = go.Figure(
@@ -97,7 +105,7 @@ def difficulty_bar_chart(difficulty_df: pd.DataFrame) -> go.Figure:
             hovertemplate=(
                 "<b>Exam A Question %{customdata[0]}</b> (Answer: %{customdata[1]})<br>"
                 "Exam B Question %{customdata[2]} (Answer: %{customdata[3]})<br>"
-                "Percent Correct: %{y:.1f}%"
+                "Percent Correct: %{y:.1f}% (%{customdata[4]} of %{customdata[5]} students)"
                 "<extra></extra>"
             ),
         )
