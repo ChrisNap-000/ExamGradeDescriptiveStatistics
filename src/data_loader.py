@@ -58,7 +58,10 @@ def load_reference_sheet(file, exam_number: int) -> pd.DataFrame:
     answer-choice order as well as question order."""
     sheet_name = f"Exam {exam_number} Reference"
     try:
-        df = pd.read_excel(file, sheet_name=sheet_name)
+        # Only truly blank cells count as missing: the Question Text / Answer
+        # Text columns can legitimately hold "None" or "N/A", which pandas
+        # would otherwise turn into NaN.
+        df = pd.read_excel(file, sheet_name=sheet_name, keep_default_na=False, na_values=[""])
     except ValueError as exc:
         raise WorkbookValidationError(
             f"Sheet '{sheet_name}' was not found in the uploaded workbook."

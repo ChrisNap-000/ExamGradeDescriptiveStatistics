@@ -12,6 +12,7 @@ import streamlit as st
 from src.charts import difficulty_bar_chart, option_breakdown_chart, totals_boxplot, totals_histogram
 from src.data_loader import WorkbookValidationError, load_grading_sheet, load_reference_sheet
 from src.descriptive_stats import compute_kpis
+from src.exam_document import missing_text_columns, render_answer_distributions
 from src.grading import QUESTION_COLUMNS, build_correctness_mask, score_grading_sheet
 from src.item_analysis import option_selection_breakdown, question_difficulty
 from src.reference import build_answer_keys
@@ -70,7 +71,11 @@ except WorkbookValidationError as exc:
 keys = build_answer_keys(reference_df)
 graded_df = score_grading_sheet(grading_df, keys)
 
-tab_stats, tab_detail = st.tabs(["\U0001F4C8 Class Statistics", "\U0001F9D1‍\U0001F393 Student Detail"])
+breakdown_df = option_selection_breakdown(graded_df, keys)
+
+tab_stats, tab_detail, tab_distributions = st.tabs(
+    ["\U0001F4C8 Class Statistics", "\U0001F9D1‍\U0001F393 Student Detail", "\U0001F4DD Answer Distributions"]
+)
 
 with tab_stats:
     st.caption("Aggregate statistics only — no student names appear on this tab.")
@@ -114,7 +119,6 @@ with tab_stats:
         "question can have more than one accepted answer; \"No Answer\" "
         "(graded incorrect) covers blanks."
     )
-    breakdown_df = option_selection_breakdown(graded_df, keys)
     st.plotly_chart(option_breakdown_chart(breakdown_df), use_container_width=True)
 
 with tab_detail:
@@ -177,3 +181,24 @@ with tab_detail:
         use_container_width=True,
         column_config={"Student": None},
     )
+
+with tab_distributions:
+    st.caption("Aggregate statistics only — no student names appear on this tab.")
+
+    missing_columns = missing_text_columns(reference_df)
+    if missing_columns:
+        st.info(
+            "This tab needs the following column(s) on the "
+            f"'Exam {exam_number} Reference' sheet: {', '.join(missing_columns)}."
+        )
+    else:
+        distributions_md = render_answer_distributions(
+            exam_number, len(graded_df), breakdown_df, reference_df
+        )
+        st.download_button(
+            "Download as Markdown",
+            data=distributions_md,
+            file_name=f"Exam {exam_number} Answer Distributions.md",
+            mime="text/markdown",
+        )
+        st.markdown(distributions_md)
