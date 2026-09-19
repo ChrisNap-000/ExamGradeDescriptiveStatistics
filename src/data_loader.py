@@ -53,6 +53,9 @@ def load_grading_sheet(file, exam_number: int) -> pd.DataFrame:
 
 
 def load_reference_sheet(file, exam_number: int) -> pd.DataFrame:
+    """Load the "melted" reference sheet: one row per (question, option) pair
+    rather than one row per question, since Exam A and Exam B shuffle
+    answer-choice order as well as question order."""
     sheet_name = f"Exam {exam_number} Reference"
     try:
         df = pd.read_excel(file, sheet_name=sheet_name)
@@ -63,21 +66,28 @@ def load_reference_sheet(file, exam_number: int) -> pd.DataFrame:
 
     df.columns = [str(c).strip() for c in df.columns]
 
-    required = {
-        "A - Questions",
-        f"Exam {exam_number}A Answer",
-        "B - Questions",
-        f"Exam {exam_number}B Answer",
-    }
+    required = {"A - Question", "A - Option", "B - Question", "B - Option", "Correct"}
     missing = required - set(df.columns)
     if missing:
         raise WorkbookValidationError(
             f"Sheet '{sheet_name}' is missing required column(s): {', '.join(sorted(missing))}"
         )
 
-    if len(df) != 50:
+    distinct_questions = df["A - Question"].nunique()
+    if distinct_questions != 50:
         raise WorkbookValidationError(
-            f"Sheet '{sheet_name}' should have 50 rows (one per question), found {len(df)}."
+            f"Sheet '{sheet_name}' should cover 50 questions (one per 'A - Question' value), "
+            f"found {distinct_questions}."
+        )
+
+    # A question may have more than one row flagged correct (e.g. a question
+    # thrown out for accepting multiple answers) - only zero is invalid.
+    correct_counts = df.groupby("A - Question")["Correct"].sum()
+    bad_questions = sorted(correct_counts[correct_counts < 1].index.tolist())
+    if bad_questions:
+        raise WorkbookValidationError(
+            f"Sheet '{sheet_name}' should have at least one correct option per question; "
+            f"question(s) with none flagged: {bad_questions}"
         )
 
     return df

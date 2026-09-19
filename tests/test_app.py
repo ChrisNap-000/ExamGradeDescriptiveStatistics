@@ -27,13 +27,12 @@ def _sample_workbook_bytes() -> bytes:
     grading_ws.append(["Carol", 0, "A"] + ["A"] * 25 + ["X"] * 25)
 
     reference_ws = wb.create_sheet(f"Exam {EXAM_NUMBER} Reference")
-    reference_ws.append(
-        ["A - Questions", f"Exam {EXAM_NUMBER}A Answer", "B - Questions", f"Exam {EXAM_NUMBER}B Answer"]
-    )
+    reference_ws.append(["A - Question", "A - Option", "B - Question", "B - Option", "Correct"])
     shift = 25
     for a_q in range(1, 51):
         b_q = ((a_q - 1 + shift) % 50) + 1
-        reference_ws.append([a_q, "A", b_q, "B"])
+        reference_ws.append([a_q, "A", b_q, "B", 1])
+        reference_ws.append([a_q, "B", b_q, "A", 0])
 
     buf = io.BytesIO()
     wb.save(buf)
