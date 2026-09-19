@@ -38,6 +38,12 @@ appears here.**
   right by Exam A's question number, combining both A and B versions of that
   question into one bar. Hover a bar to see that question's number and correct
   answer on **both** versions, plus percent correct.
+- **Answer Choice Breakdown:** a stacked bar chart of which answer option
+  students picked, one bar per question (same left-to-right ordering),
+  combining both A and B versions into one bar per underlying option via the
+  Reference sheet's option mapping. The correct option's segment carries a
+  checkmark. Hover a segment to see each version's own native letter and
+  question number.
 
 ## 5. 🧑‍🎓 Tab: Student Detail *(unmasked)*
 

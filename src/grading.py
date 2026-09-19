@@ -14,8 +14,7 @@ def build_correctness_mask(grading_df: pd.DataFrame, keys: AnswerKeys) -> pd.Dat
     records = []
     for _, row in grading_df.iterrows():
         version = str(row["Exam A or B?"]).strip().upper()
-        key = keys.key_for(version)
-        records.append({q: str(row[q]).strip().upper() == key.get(q) for q in QUESTION_COLUMNS})
+        records.append({q: keys.is_correct(version, q, row[q]) for q in QUESTION_COLUMNS})
     return pd.DataFrame(records, index=grading_df.index, columns=QUESTION_COLUMNS)
 
 

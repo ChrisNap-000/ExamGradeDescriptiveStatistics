@@ -67,7 +67,7 @@ except WorkbookValidationError as exc:
     st.error(str(exc))
     st.stop()
 
-keys = build_answer_keys(reference_df, exam_number)
+keys = build_answer_keys(reference_df)
 graded_df = score_grading_sheet(grading_df, keys)
 
 tab_stats, tab_detail = st.tabs(["\U0001F4C8 Class Statistics", "\U0001F9D1‍\U0001F393 Student Detail"])
@@ -103,14 +103,16 @@ with tab_stats:
 
     st.subheader("Answer Choice Breakdown")
     st.caption(
-        "Shown separately per exam version, since Exam A and Exam B shuffle "
-        "answer choices — option \"C\" on one version isn't necessarily the "
-        "same distractor as option \"C\" on the other. Both rows share the "
-        "same x-axis via the answer-key mapping, so the bar under a given "
-        "number is always the same underlying question on both rows — hover "
-        "an Exam B bar to see its own native question number. The checkmark "
-        "marks each question's correct option; \"No Answer\" (graded "
-        "incorrect) covers blanks."
+        "One stacked bar per question, ordered by Exam A's question number. "
+        "Since Exam A and Exam B shuffle answer-choice order as well as "
+        "question order, each segment is the same underlying option "
+        "regardless of which letter it was labeled on either version's "
+        "paper — the reference sheet's per-option mapping combines both "
+        "versions into a single bar instead of splitting them. Hover a "
+        "segment to see each version's own native letter and question "
+        "number. The checkmark marks each question's correct option(s) — a "
+        "question can have more than one accepted answer; \"No Answer\" "
+        "(graded incorrect) covers blanks."
     )
     breakdown_df = option_selection_breakdown(graded_df, keys)
     st.plotly_chart(option_breakdown_chart(breakdown_df), use_container_width=True)

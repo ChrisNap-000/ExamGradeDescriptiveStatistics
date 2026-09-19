@@ -16,11 +16,10 @@ def question_difficulty(graded_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFra
 
     for _, row in graded_df.iterrows():
         version = str(row["Exam A or B?"]).strip().upper()
-        key = keys.key_for(version)
         for q in QUESTION_COLUMNS:
             canonical_id = keys.canonical_id(version, q)
             total_counts[canonical_id] += 1
-            if str(row[q]).strip().upper() == key.get(q):
+            if keys.is_correct(version, q, row[q]):
                 correct_counts[canonical_id] += 1
 
     records = []
@@ -29,9 +28,9 @@ def question_difficulty(graded_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFra
         records.append(
             {
                 "Exam A Question Number": a_q,
-                "Exam A Answer": keys.key_a.get(a_q, ""),
+                "Exam A Answer": keys.correct_letters("A", a_q),
                 "Exam B Question Number": b_q,
-                "Exam B Answer": keys.key_b.get(b_q, ""),
+                "Exam B Answer": keys.correct_letters("B", b_q),
                 "Percent Correct": (
                     correct_counts[a_q] / total_counts[a_q] * 100 if total_counts[a_q] else 0.0
                 ),
@@ -45,45 +44,55 @@ def question_difficulty(graded_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFra
 
 
 def option_selection_breakdown(graded_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFrame:
-    """Per-question, per-version count of which answer option students picked.
+    """Per-question count of which underlying answer option students picked,
+    combined across Exam A and Exam B.
 
-    Kept separate per exam version (never merged into one row) because Exam A
-    and Exam B shuffle answer choices, so option "C" on one version isn't
-    necessarily the same underlying distractor as option "C" on the other.
-    Anything other than A-E (a blank graded "NA", or stray data-entry noise)
-    is bucketed as "NA" — a no-answer counts as incorrect either way.
+    Exam A and Exam B shuffle answer-choice order as well as question order,
+    so a raw letter alone doesn't identify an option across versions. The
+    reference sheet maps each option pair explicitly (not just each question
+    pair), so a student's selected letter is first translated to its
+    canonical (Exam A) option identity via `keys.canonical_option` before
+    being counted — letting both versions land in the same bucket instead of
+    two separate per-version rows. Anything that doesn't map to a known
+    option (a blank graded "NA", or stray data-entry noise) is bucketed as
+    "NA" — a no-answer counts as incorrect either way.
     """
-    counts: dict[tuple[int, str, str], int] = {}
-    totals: dict[tuple[int, str], int] = {}
+    counts: dict[tuple[int, str], int] = {}
+    version_counts: dict[tuple[int, str, str], int] = {}
+    totals: dict[int, int] = {}
 
     for _, row in graded_df.iterrows():
         version = str(row["Exam A or B?"]).strip().upper()
         for q in QUESTION_COLUMNS:
-            canonical_id = keys.canonical_id(version, q)
-            totals[(canonical_id, version)] = totals.get((canonical_id, version), 0) + 1
+            a_q = keys.canonical_id(version, q)
+            totals[a_q] = totals.get(a_q, 0) + 1
             letter = str(row[q]).strip().upper()
-            option = letter if letter in KNOWN_OPTIONS else NO_ANSWER_OPTION
-            count_key = (canonical_id, version, option)
-            counts[count_key] = counts.get(count_key, 0) + 1
+            option = keys.canonical_option(version, q, letter) or NO_ANSWER_OPTION
+            counts[(a_q, option)] = counts.get((a_q, option), 0) + 1
+            version_counts[(a_q, option, version)] = version_counts.get((a_q, option, version), 0) + 1
 
     records = []
     for a_q in QUESTION_COLUMNS:
         b_q = keys.a_to_b[a_q]
-        for version, native_q in (("A", a_q), ("B", b_q)):
-            total = totals.get((a_q, version), 0)
-            correct_letter = keys.key_for(version).get(native_q)
-            for option in (*KNOWN_OPTIONS, NO_ANSWER_OPTION):
-                count = counts.get((a_q, version, option), 0)
-                records.append(
-                    {
-                        "Exam A Question Number": a_q,
-                        "Native Question Number": native_q,
-                        "Version": version,
-                        "Option": option,
-                        "Count": count,
-                        "Total": total,
-                        "Percent": count / total * 100 if total else 0.0,
-                        "Is Correct": option == correct_letter,
-                    }
-                )
+        total = totals.get(a_q, 0)
+        correct_letters = keys.key_a.get(a_q, set())
+        options = (*keys.canonical_options.get(a_q, KNOWN_OPTIONS), NO_ANSWER_OPTION)
+        for option in options:
+            count = counts.get((a_q, option), 0)
+            is_na = option == NO_ANSWER_OPTION
+            records.append(
+                {
+                    "Exam A Question Number": a_q,
+                    "Exam B Question Number": b_q,
+                    "Option": option,
+                    "A Option": "" if is_na else option,
+                    "B Option": "" if is_na else keys.b_option(a_q, option),
+                    "Count": count,
+                    "A Count": version_counts.get((a_q, option, "A"), 0),
+                    "B Count": version_counts.get((a_q, option, "B"), 0),
+                    "Total": total,
+                    "Percent": count / total * 100 if total else 0.0,
+                    "Is Correct": option in correct_letters,
+                }
+            )
     return pd.DataFrame(records)

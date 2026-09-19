@@ -34,34 +34,45 @@ One row per student.
 
 ## 🗂️ `Exam {n} Reference`
 
-Exactly 50 rows — one per question. This sheet does two jobs at once: it's the
-answer key for each version, **and** it maps each Exam A question to the Exam B
-question that's actually the same underlying question (just reordered).
+One row per **(question, answer option)** pair — up to 5 rows per question
+(options A–E), not one row per question. This sheet does two jobs at once:
+it's the answer key for each version, **and** it maps each Exam A
+question/option to the Exam B question/option that's actually the same
+underlying question and the same underlying option (both are shuffled
+between versions, not just question order).
 
 | Column | Required? | Notes |
 |---|---|---|
-| `A - Questions` | ✅ | The question number on Exam A. |
-| `Exam {n}A Answer` | ✅ | The correct letter for that question on Exam A. Header includes the exam number, e.g. `Exam 2A Answer` for Exam 2. |
-| `B - Questions` | ✅ | The Exam B question number that is the *same question* as the Exam A one on this row. |
-| `Exam {n}B Answer` | ✅ | The correct letter for that same question on Exam B. |
+| `A - Question` | ✅ | The question number on Exam A. |
+| `A - Option` | ✅ | The option letter on Exam A for this row. |
+| `B - Question` | ✅ | The Exam B question number that is the *same question* as the Exam A one on this row. |
+| `B - Option` | ✅ | The Exam B option letter that is the *same underlying option* as the Exam A one on this row. |
+| `Correct` | ✅ | `1` if this row's option pair is an accepted correct answer for the question, otherwise `0`. At least one `1` per question — flag more than one row `1` for a question if you're accepting multiple answers (e.g. to fix a flawed question). |
 
-**Example** (for Exam 1): the first row `1, A, 26, B` means *"Exam A Question 1 is
-the same question as Exam B Question 26. The correct answer is A on the Exam A
-version, and B on the Exam B version."*
+**Example** (for Exam 1): the first two rows say *"Exam A Question 1's option A
+is the same underlying option as Exam B Question 26's option B, and it's the
+correct answer. Exam A Question 1's option B is the same underlying option as
+Exam B Question 26's option A, and it's a distractor."*
 
-| A - Questions | Exam 1A Answer | B - Questions | Exam 1B Answer |
-|---|---|---|---|
-| 1 | A | 26 | B |
-| 2 | C | 14 | A |
-| … | … | … | … |
+| A - Question | A - Option | B - Question | B - Option | Correct |
+|---|---|---|---|---|
+| 1 | A | 26 | B | 1 |
+| 1 | B | 26 | A | 0 |
+| 2 | A | 14 | C | 0 |
+| 2 | B | 14 | A | 1 |
+| … | … | … | … | … |
 
-This mapping is what lets the app's **Question Difficulty** chart combine results
-from both exam versions into one number per underlying question, instead of
-treating "Question 1" on Exam A and "Question 1" on Exam B as if they were
-different questions.
+This mapping is what lets the app's **Question Difficulty** chart combine
+results from both exam versions into one number per underlying question, and
+what lets the **Answer Choice Breakdown** chart combine both versions'
+responses into one stacked bar per question per underlying option — instead
+of treating "Question 1, Option A" on Exam A and "Question 1, Option A" on
+Exam B as if they were the same choice, when the versions may have shuffled
+which letter each option is labeled.
 
 ## 🙅 What happens if something's off
 
-If a required sheet is missing, a required column is missing, or the Reference
-sheet doesn't have exactly 50 rows, the app stops and tells you exactly what's
-wrong instead of guessing.
+If a required sheet is missing, a required column is missing, the Reference
+sheet doesn't cover all 50 questions, or a question has no row flagged
+`Correct = 1`, the app stops and tells you exactly what's wrong instead of
+guessing.
