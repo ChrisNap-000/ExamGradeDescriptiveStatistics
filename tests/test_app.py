@@ -13,7 +13,7 @@ from streamlit.testing.v1 import AppTest
 EXAM_NUMBER = 1
 
 
-def _sample_workbook_bytes() -> bytes:
+def _sample_workbook_bytes(include_text_columns: bool = True) -> bytes:
     wb = openpyxl.Workbook()
     grading_ws = wb.active
     grading_ws.title = f"Exam {EXAM_NUMBER} Grading"
@@ -27,23 +27,31 @@ def _sample_workbook_bytes() -> bytes:
     grading_ws.append(["Carol", 0, "A"] + ["A"] * 25 + ["X"] * 25)
 
     reference_ws = wb.create_sheet(f"Exam {EXAM_NUMBER} Reference")
-    reference_ws.append(["A - Question", "A - Option", "B - Question", "B - Option", "Correct"])
+    header_row = ["A - Question", "A - Option", "B - Question", "B - Option", "Correct"]
+    if include_text_columns:
+        header_row += ["Question Text", "Answer Text"]
+    reference_ws.append(header_row)
     shift = 25
     for a_q in range(1, 51):
         b_q = ((a_q - 1 + shift) % 50) + 1
-        reference_ws.append([a_q, "A", b_q, "B", 1])
-        reference_ws.append([a_q, "B", b_q, "A", 0])
+        right = [a_q, "A", b_q, "B", 1]
+        wrong = [a_q, "B", b_q, "A", 0]
+        if include_text_columns:
+            right += [f"Question {a_q}", "Right answer"]
+            wrong += [f"Question {a_q}", "Wrong answer"]
+        reference_ws.append(right)
+        reference_ws.append(wrong)
 
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
 
 
-def _run_app_with_upload() -> AppTest:
+def _run_app_with_upload(include_text_columns: bool = True) -> AppTest:
     at = AppTest.from_file("ExamGrader.py")
     at.run()
     at.file_uploader[0].set_value(
-        ("sample_workbook.xlsx", _sample_workbook_bytes(), "application/vnd.ms-excel")
+        ("sample_workbook.xlsx", _sample_workbook_bytes(include_text_columns), "application/vnd.ms-excel")
     )
     at.run()
     return at
@@ -122,3 +130,23 @@ def test_exam_version_dropdown_filters_table():
     assert not at.exception
     table_df = at.tabs[1].dataframe[0].value
     assert set(table_df["Student"]) == {"Alice", "Carol"}
+
+
+def test_answer_distributions_tab_renders_exam_style_markdown():
+    at = _run_app_with_upload()
+
+    assert not at.exception
+    distributions_md = "\n".join(m.value for m in at.tabs[2].markdown)
+    assert "# Exam 1 - Answer Distributions" in distributions_md
+    assert "### Question 1 (Exam B: Question 26)" in distributions_md
+    assert "| **A** | **Right answer ✓**" in distributions_md
+    assert "Alice" not in distributions_md
+
+
+def test_answer_distributions_tab_shows_notice_when_text_columns_missing():
+    at = _run_app_with_upload(include_text_columns=False)
+
+    assert not at.exception
+    notice = "\n".join(i.value for i in at.tabs[2].info)
+    assert "Question Text" in notice and "Answer Text" in notice
+    assert "Answer Distributions" not in "\n".join(m.value for m in at.tabs[2].markdown)

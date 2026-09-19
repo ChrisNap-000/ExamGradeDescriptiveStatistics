@@ -60,7 +60,23 @@ share this tab's view the way you would the Class Statistics tab.
   to one exam version.
 - The table is sized to show every filtered row at once — no internal scrolling.
 
-## 6. ✅ Sanity-checking a new workbook
+## 6. 📝 Tab: Answer Distributions *(masked)*
+
+The exam laid out like the paper copy: one block per question, ordered by Exam A's
+question number, headed `Question N (Exam B: Question M)` so you can see where the
+question landed on both versions. Under each question is a table of its answer
+options (Exam A lettering) with the option's text, the **% of students** and the
+**number of students** who chose it, combining both exam versions. The correct
+answer(s) are **bold with a ✓**. A `No Answer` row (blanks) is added only for
+questions that at least one student left blank. No student names appear here.
+
+Use **Download as Markdown** to save the same content as a `.md` file. The layout
+comes from `templates/answer_distributions.md`, so you can change the wording or
+structure by editing that file. This tab needs the `Question Text` and
+`Answer Text` columns on the Reference sheet; without them it shows a notice and
+the other tabs keep working.
+
+## 7. ✅ Sanity-checking a new workbook
 
 Before trusting the numbers on a new exam file:
 

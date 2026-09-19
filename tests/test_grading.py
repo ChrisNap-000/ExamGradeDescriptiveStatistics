@@ -324,3 +324,28 @@ def test_load_reference_sheet_bad_correct_flag_count_raises():
 
     with pytest.raises(WorkbookValidationError):
         load_reference_sheet(str(path), EXAM_NUMBER)
+
+
+def test_load_reference_sheet_accepts_text_columns_and_preserves_none_text():
+    """Question Text / Answer Text ride along with the mapping columns, and
+    literal text like "None" must not be turned into NaN by pandas."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Exam {EXAM_NUMBER} Reference"
+    ws.append(
+        ["A - Question", "A - Option", "B - Question", "B - Option", "Correct", "Question Text", "Answer Text"]
+    )
+    for row in _reference_df().itertuples(index=False):
+        answer_text = "None" if (row[0] == 1 and row[1] == "B") else f"Answer {row[1]}"
+        ws.append([*row, f"Question {row[0]}", answer_text])
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = Path(tmp_dir) / "workbook.xlsx"
+        wb.save(path)
+
+        df = load_reference_sheet(str(path), EXAM_NUMBER)
+
+    assert {"Question Text", "Answer Text"} <= set(df.columns)
+    none_row = df[(df["A - Question"] == 1) & (df["A - Option"] == "B")].iloc[0]
+    assert none_row["Answer Text"] == "None"
+    build_answer_keys(df)

@@ -50,12 +50,15 @@ src/
   item_analysis.py            Per-question difficulty, combined across A & B
   descriptive_stats.py         Mean / median / mode / min / max / range / std dev
   charts.py                     Histogram, boxplot, difficulty bar chart
+  exam_document.py               Fills the Answer Distributions markdown template
+templates/
+  answer_distributions.md  Markdown template for the exam-style Answer Distributions tab
 tests/
   test_grading.py          Unit tests for the grading + mapping logic
   test_app.py                End-to-end tests that drive the real app headlessly
 docs/
   DATA_FORMAT.md          Exact workbook structure your file needs to follow
-  USER_GUIDE.md             Walkthrough of the app's two tabs
+  USER_GUIDE.md             Walkthrough of the app's three tabs
 ```
 
 ## 📚 More docs

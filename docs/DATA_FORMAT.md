@@ -48,6 +48,8 @@ between versions, not just question order).
 | `B - Question` | ✅ | The Exam B question number that is the *same question* as the Exam A one on this row. |
 | `B - Option` | ✅ | The Exam B option letter that is the *same underlying option* as the Exam A one on this row. |
 | `Correct` | ✅ | `1` if this row's option pair is an accepted correct answer for the question, otherwise `0`. At least one `1` per question — flag more than one row `1` for a question if you're accepting multiple answers (e.g. to fix a flawed question). |
+| `Question Text` | ➖ | The question's wording, repeated on each of its option rows. Optional for the charts and grading, but required for the **Answer Distributions** tab (which shows a notice if it's missing). |
+| `Answer Text` | ➖ | The wording of this row's option (the answer choice itself). Optional for the charts and grading, but required for the **Answer Distributions** tab. Text such as `None` or `N/A` is kept as-is. |
 
 **Example** (for Exam 1): the first two rows say *"Exam A Question 1's option A
 is the same underlying option as Exam B Question 26's option B, and it's the
