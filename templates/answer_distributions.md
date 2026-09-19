@@ -20,8 +20,6 @@
 | No Answer | | {{ q.no_answer.percent }}% | {{ q.no_answer.count }} |
 {% endif %}
 
-&nbsp;
-
 ---
 
 {% endfor %}
