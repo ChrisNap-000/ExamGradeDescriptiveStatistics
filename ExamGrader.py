@@ -92,7 +92,10 @@ with tab_stats:
     st.write("")
     col_hist, col_box = st.columns(2)
     with col_hist:
-        st.plotly_chart(totals_histogram(graded_df["Total"]), use_container_width=True)
+        bin_size = st.number_input(
+            "Bin size", min_value=1, max_value=50, value=2, step=1, key="grade_bin_size"
+        )
+        st.plotly_chart(totals_histogram(graded_df["Total"], bin_size), use_container_width=True)
     with col_box:
         st.plotly_chart(totals_boxplot(graded_df["Total"]), use_container_width=True)
 

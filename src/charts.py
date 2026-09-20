@@ -63,13 +63,13 @@ _AXIS_DEFAULTS = dict(
 )
 
 
-def totals_histogram(totals: pd.Series) -> go.Figure:
+def totals_histogram(totals: pd.Series, bin_size: float = 2) -> go.Figure:
     fig = go.Figure(
         go.Histogram(
             x=totals,
             marker_color=ACCENT,
             marker_line_width=0,
-            xbins=dict(size=2),
+            xbins=dict(size=bin_size),
             hovertemplate="Grade: %{x}<br>Occurrences: %{y}<extra></extra>",
         )
     )
