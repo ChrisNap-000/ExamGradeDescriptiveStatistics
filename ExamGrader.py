@@ -80,7 +80,14 @@ tab_stats, tab_detail, tab_distributions = st.tabs(
 with tab_stats:
     st.caption("Aggregate statistics only — no student names appear on this tab.")
 
-    kpis = compute_kpis(graded_df["Total"])
+    curve = graded_df["Curve"]
+    apply_curve = False
+    if curve.any():
+        apply_curve = st.toggle("Apply curve to statistics below", value=False)
+
+    totals = graded_df["Total"] if apply_curve else graded_df["Total Before Curve"]
+
+    kpis = compute_kpis(totals)
     kpi_cols = st.columns(len(kpis))
     for col, (label, value) in zip(kpi_cols, kpis.items()):
         col.markdown(
@@ -95,9 +102,10 @@ with tab_stats:
         bin_size = st.number_input(
             "Bin size", min_value=1, max_value=50, value=2, step=1, key="grade_bin_size"
         )
-        st.plotly_chart(totals_histogram(graded_df["Total"], bin_size), use_container_width=True)
+        st.plotly_chart(totals_histogram(totals, bin_size), use_container_width=True)
     with col_box:
-        st.plotly_chart(totals_boxplot(graded_df["Total"]), use_container_width=True)
+        st.container(height=70, border=False)
+        st.plotly_chart(totals_boxplot(totals), use_container_width=True)
 
     st.subheader("Question Difficulty")
     st.caption(
@@ -162,7 +170,13 @@ with tab_detail:
         & graded_df["Exam A or B?"].astype(str).str.upper().isin(selected_versions)
     ]
 
-    display_cols = ["Student", "Total", "Exam A or B?"] + QUESTION_COLUMNS
+    display_cols = [
+        "Student",
+        "Total Before Curve",
+        "Curve",
+        "Total",
+        "Exam A or B?",
+    ] + QUESTION_COLUMNS
     display_df = filtered_df[display_cols]
     correctness_mask = build_correctness_mask(filtered_df, keys)
 
@@ -182,7 +196,11 @@ with tab_detail:
         styled_df,
         height=table_height,
         use_container_width=True,
-        column_config={"Student": None},
+        column_config={
+            "Student": None,
+            "Total Before Curve": st.column_config.Column("Total"),
+            "Total": st.column_config.Column("Total after Curve"),
+        },
     )
 
 with tab_distributions:

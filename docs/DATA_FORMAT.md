@@ -18,15 +18,16 @@ One row per student.
 |---|---|---|
 | `Student` | ✅ | Student's name. Only ever shown on the unmasked Student Detail tab. |
 | `Total` | ➖ | Optional — leave it out entirely, or include it and it'll be ignored. The app always recomputes this itself. |
+| `Curve` | ➖ | Optional — points to add to that student's score (e.g. `2`, or `-1`). Leave it out, or leave a cell blank, to apply no curve (defaults to `0`). Added on top of the computed raw score to produce the final `Total`. |
 | `Exam A or B?` | ✅ | Literally `A` or `B` — which version this student took. |
 | `1` … `50` | ✅ | One column per question number, header is just the number. Holds the student's letter answer (`A`/`B`/`C`/`D`), or the literal text `NA` for a blank. |
 
 **Example:**
 
-| Student | Total | Exam A or B? | 1 | 2 | 3 | … | 50 |
-|---|---|---|---|---|---|---|---|
-| Jordan P. | *(ignored)* | A | B | A | NA | … | C |
-| Sam R. | *(ignored)* | B | D | B | A | … | D |
+| Student | Total | Curve | Exam A or B? | 1 | 2 | 3 | … | 50 |
+|---|---|---|---|---|---|---|---|---|
+| Jordan P. | *(ignored)* | 2 | A | B | A | NA | … | C |
+| Sam R. | *(ignored)* | 0 | B | D | B | A | … | D |
 
 > ⚠️ Blank answers must be entered as the literal text `NA`, not left as an empty
 > cell. The app scores `NA` as incorrect either way, but a truly empty cell can be
