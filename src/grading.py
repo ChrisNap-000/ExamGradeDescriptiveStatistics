@@ -21,5 +21,9 @@ def build_correctness_mask(grading_df: pd.DataFrame, keys: AnswerKeys) -> pd.Dat
 def score_grading_sheet(grading_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFrame:
     df = grading_df.copy()
     mask = build_correctness_mask(df, keys)
-    df.insert(1, "Total", (mask.sum(axis=1) * POINTS_PER_QUESTION).astype(int))
+    raw_total = (mask.sum(axis=1) * POINTS_PER_QUESTION).astype(int)
+    curve = df.pop("Curve") if "Curve" in df.columns else 0
+    df.insert(1, "Total Before Curve", raw_total)
+    df.insert(2, "Curve", curve)
+    df.insert(3, "Total", df["Total Before Curve"] + df["Curve"])
     return df
