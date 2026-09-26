@@ -63,6 +63,12 @@ _AXIS_DEFAULTS = dict(
 )
 
 
+def _score_axis_max(totals: pd.Series) -> float:
+    """100, or the highest total if a curve pushed someone above 100."""
+    highest = pd.to_numeric(totals, errors="coerce").max()
+    return max(100.0, float(highest)) if pd.notna(highest) else 100.0
+
+
 def totals_histogram(totals: pd.Series, bin_size: float = 2) -> go.Figure:
     fig = go.Figure(
         go.Histogram(
@@ -80,7 +86,11 @@ def totals_histogram(totals: pd.Series, bin_size: float = 2) -> go.Figure:
         bargap=0.05,
         **_LAYOUT_DEFAULTS,
     )
-    fig.update_xaxes(range=[0, 100], **_AXIS_DEFAULTS)
+    x_max = _score_axis_max(totals)
+    if x_max > 100:
+        # Leave room for the full bar of the bin holding the highest score.
+        x_max += bin_size
+    fig.update_xaxes(range=[0, x_max], **_AXIS_DEFAULTS)
     fig.update_yaxes(**_AXIS_DEFAULTS)
     return fig
 
@@ -103,7 +113,7 @@ def totals_boxplot(totals: pd.Series) -> go.Figure:
         **_LAYOUT_DEFAULTS,
     )
     fig.update_xaxes(**_AXIS_DEFAULTS)
-    fig.update_yaxes(range=[0, 100], **_AXIS_DEFAULTS)
+    fig.update_yaxes(range=[0, _score_axis_max(totals)], **_AXIS_DEFAULTS)
     return fig
 
 
