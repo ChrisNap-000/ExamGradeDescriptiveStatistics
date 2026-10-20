@@ -5,7 +5,7 @@ import re
 
 import pandas as pd
 
-from src.exam_document import md_escape, missing_text_columns, render_answer_distributions
+from src.exam_document import build_question_map, md_escape, missing_text_columns, render_answer_distributions
 from src.item_analysis import option_selection_breakdown
 from src.reference import build_answer_keys
 
@@ -63,6 +63,34 @@ def test_renders_one_section_per_question_in_exam_a_order():
     assert "2 students" in md
 
 
+def test_question_mapping_table_lists_exam_b_in_order_before_questions():
+    md = _render(_reference_df())
+
+    mapping = md.split("### Question Mapping")[1].split("### Question 1 ")[0]
+    rows = [line for line in mapping.splitlines() if re.match(r"^\| \d", line)]
+    assert len(rows) == 10  # five side-by-side groups of ten
+    cells = [[c.strip() for c in row.strip("|").split("|")] for row in rows]
+    # Each pair is followed by an empty spacer column (except the last pair).
+    assert all(len(row) == 14 and row[2::3] == ["", "", "", ""] for row in cells)
+    # Read down each column pair: group 1 is B1-B10, group 2 is B11-B20, ...
+    pairs = [(int(row[g]), int(row[g + 1])) for g in range(0, 14, 3) for row in cells]
+    assert [b for b, _ in pairs] == list(range(1, 51))
+    assert all(_b_question(a) == b for b, a in pairs)
+    assert md.index("### Question Mapping") < md.index("### Question 1 ")
+
+
+def test_question_map_pads_short_last_group_with_blank_cells():
+    keys = build_answer_keys(_reference_df())
+    breakdown = option_selection_breakdown(
+        pd.DataFrame([{"Student": "Alice", "Exam A or B?": "A", **{q: "A" for q in range(1, 51)}}]), keys
+    )
+    rows = build_question_map(breakdown, rows_per_group=12)
+
+    assert len(rows) == 12 and all(len(row) == 5 for row in rows)
+    assert rows[1][4] == {"b_number": 50, "a_number": 25}
+    assert rows[2][4] == {"b_number": "", "a_number": ""}
+
+
 def test_heading_shows_exam_a_and_exam_b_question_numbers():
     md = _render(_reference_df())
 
@@ -106,7 +134,7 @@ def test_tables_end_with_a_blank_line_so_no_blank_row_is_absorbed():
             i for i, line in enumerate(lines)
             if line.startswith("|") and not (i + 1 < len(lines) and lines[i + 1].startswith("|"))
         ]
-        assert len(table_ends) == 50
+        assert len(table_ends) == 51  # 50 questions + the question mapping table
         assert all(i + 1 >= len(lines) or lines[i + 1] == "" for i in table_ends)
 
 
