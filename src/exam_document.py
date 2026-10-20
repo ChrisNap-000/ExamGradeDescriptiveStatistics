@@ -12,6 +12,7 @@ TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 TEMPLATE_NAME = "answer_distributions.md"
 TEXT_COLUMNS = ("Question Text", "Answer Text")
 _BLANK_TEXT = "—"
+QUESTION_MAP_ROWS = 10
 
 # Streamlit treats $...$ as LaTeX, and | would split a table cell, so all of
 # these are backslash-escaped (standard CommonMark, so any viewer shows them plainly).
@@ -72,6 +73,23 @@ def build_question_blocks(breakdown_df: pd.DataFrame, reference_df: pd.DataFrame
     return blocks
 
 
+def build_question_map(breakdown_df: pd.DataFrame, rows_per_group: int = QUESTION_MAP_ROWS) -> list[list[dict]]:
+    """Exam B question numbers in order, each with its Exam A question, laid out
+    as table rows: consecutive runs of `rows_per_group` Exam B questions sit
+    side by side (row 1 holds B1, B11, B21, ...) so the table stays short."""
+    pairs = breakdown_df[["Exam B Question Number", "Exam A Question Number"]].drop_duplicates()
+    ordered = [
+        {"b_number": int(b_q), "a_number": int(a_q)}
+        for b_q, a_q in sorted(pairs.itertuples(index=False, name=None))
+    ]
+    groups = [ordered[i:i + rows_per_group] for i in range(0, len(ordered), rows_per_group)]
+    blank = {"b_number": "", "a_number": ""}
+    return [
+        [group[r] if r < len(group) else blank for group in groups]
+        for r in range(min(rows_per_group, len(ordered)))
+    ]
+
+
 def render_answer_distributions(
     exam_number: int,
     total_students: int,
@@ -90,5 +108,6 @@ def render_answer_distributions(
     return env.get_template(TEMPLATE_NAME).render(
         exam_number=exam_number,
         total_students=total_students,
+        question_map=build_question_map(breakdown_df),
         questions=build_question_blocks(breakdown_df, reference_df),
     )
