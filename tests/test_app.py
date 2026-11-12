@@ -13,18 +13,24 @@ from streamlit.testing.v1 import AppTest
 EXAM_NUMBER = 1
 
 
-def _sample_workbook_bytes(include_text_columns: bool = True) -> bytes:
+def _sample_workbook_bytes(include_text_columns: bool = True, extra_credit: list | None = None) -> bytes:
     wb = openpyxl.Workbook()
     grading_ws = wb.active
     grading_ws.title = f"Exam {EXAM_NUMBER} Grading"
 
     header = ["Student", "Total", "Exam A or B?"] + list(range(1, 51))
+    if extra_credit is not None:
+        header.append("Extra Credit")
     grading_ws.append(header)
 
     # Alice (A): all correct. Bob (B): all correct. Carol (A): first 25 correct only.
-    grading_ws.append(["Alice", 0, "A"] + ["A"] * 50)
-    grading_ws.append(["Bob", 0, "B"] + ["B"] * 50)
-    grading_ws.append(["Carol", 0, "A"] + ["A"] * 25 + ["X"] * 25)
+    rows = [
+        ["Alice", 0, "A"] + ["A"] * 50,
+        ["Bob", 0, "B"] + ["B"] * 50,
+        ["Carol", 0, "A"] + ["A"] * 25 + ["X"] * 25,
+    ]
+    for i, row in enumerate(rows):
+        grading_ws.append(row + ([extra_credit[i]] if extra_credit is not None else []))
 
     reference_ws = wb.create_sheet(f"Exam {EXAM_NUMBER} Reference")
     header_row = ["A - Question", "A - Option", "B - Question", "B - Option", "Correct"]
@@ -47,14 +53,40 @@ def _sample_workbook_bytes(include_text_columns: bool = True) -> bytes:
     return buf.getvalue()
 
 
-def _run_app_with_upload(include_text_columns: bool = True) -> AppTest:
+def _run_app_with_upload(include_text_columns: bool = True, extra_credit: list | None = None) -> AppTest:
     at = AppTest.from_file("ExamGrader.py")
     at.run()
     at.file_uploader[0].set_value(
-        ("sample_workbook.xlsx", _sample_workbook_bytes(include_text_columns), "application/vnd.ms-excel")
+        (
+            "sample_workbook.xlsx",
+            _sample_workbook_bytes(include_text_columns, extra_credit),
+            "application/vnd.ms-excel",
+        )
     )
     at.run()
     return at
+
+
+def _extra_credit_toggles(at: AppTest) -> list:
+    return [t for t in at.toggle if "extra credit" in t.label.lower()]
+
+
+def test_extra_credit_toggle_hidden_when_exam_has_no_extra_credit():
+    assert _extra_credit_toggles(_run_app_with_upload()) == []
+    # Column present but all blank/zero also counts as "no extra credit".
+    assert _extra_credit_toggles(_run_app_with_upload(extra_credit=[None, 0, None])) == []
+
+
+def test_extra_credit_toggle_switches_kpis():
+    # Carol gets +10: mean 86.7 with extra credit, 83.3 without.
+    at = _run_app_with_upload(extra_credit=[0, 0, 10])
+    toggles = _extra_credit_toggles(at)
+    assert len(toggles) == 1
+    assert "86.7" in "\n".join(m.value for m in at.markdown)
+
+    toggles[0].set_value(False).run()
+    assert not at.exception
+    assert "83.3" in "\n".join(m.value for m in at.markdown)
 
 
 def test_app_runs_with_no_upload_yet():

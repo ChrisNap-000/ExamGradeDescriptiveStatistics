@@ -23,7 +23,12 @@ def score_grading_sheet(grading_df: pd.DataFrame, keys: AnswerKeys) -> pd.DataFr
     mask = build_correctness_mask(df, keys)
     raw_total = (mask.sum(axis=1) * POINTS_PER_QUESTION).astype(int)
     curve = df.pop("Curve") if "Curve" in df.columns else 0
-    df.insert(1, "Total Before Curve", raw_total)
-    df.insert(2, "Curve", curve)
-    df.insert(3, "Total", df["Total Before Curve"] + df["Curve"])
+    extra_credit = df.pop("Extra Credit") if "Extra Credit" in df.columns else 0
+    # Extra credit counts toward the grade whether or not the curve is applied,
+    # so it is folded into Total Before Curve as well as Total.
+    df.insert(1, "Raw Score", raw_total)
+    df.insert(2, "Extra Credit", extra_credit)
+    df.insert(3, "Total Before Curve", df["Raw Score"] + df["Extra Credit"])
+    df.insert(4, "Curve", curve)
+    df.insert(5, "Total", df["Total Before Curve"] + df["Curve"])
     return df

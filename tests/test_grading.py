@@ -278,6 +278,42 @@ def test_load_grading_sheet_works_without_total_column():
     assert graded.set_index("Student")["Total"].to_dict() == {"Erin": 100}
 
 
+def test_extra_credit_applies_with_and_without_curve():
+    grading_df = _grading_df()
+    grading_df["Curve"] = [0, 4, 4]
+    grading_df["Extra Credit"] = [3, 0, 2]
+
+    graded = score_grading_sheet(grading_df, build_answer_keys(_reference_df())).set_index("Student")
+
+    assert graded["Total Before Curve"].to_dict() == {"Alice": 103, "Bob": 100, "Carol": 52}
+    assert graded["Total"].to_dict() == {"Alice": 103, "Bob": 104, "Carol": 56}
+
+
+def test_load_grading_sheet_extra_credit_optional_and_blank_is_zero():
+    def _load(header: list, rows: list[list]) -> pd.DataFrame:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Exam {EXAM_NUMBER} Grading"
+        ws.append(header)
+        for r in rows:
+            ws.append(r)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "workbook.xlsx"
+            wb.save(path)
+            return load_grading_sheet(str(path), EXAM_NUMBER)
+
+    base = ["Student", "Exam A or B?"] + list(range(1, 51))
+
+    without = _load(base, [["Erin", "A"] + ["A"] * 50])
+    assert without["Extra Credit"].tolist() == [0]
+
+    with_col = _load(
+        base + ["Extra Credit"],
+        [["Erin", "A"] + ["A"] * 50 + [5], ["Finn", "A"] + ["A"] * 50 + [None]],
+    )
+    assert with_col["Extra Credit"].tolist() == [5, 0]
+
+
 def test_load_grading_sheet_missing_sheet_raises():
     wb = openpyxl.Workbook()
     wb.active.title = "Some Other Sheet"

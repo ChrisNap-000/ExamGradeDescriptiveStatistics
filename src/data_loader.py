@@ -49,10 +49,12 @@ def load_grading_sheet(file, exam_number: int) -> pd.DataFrame:
     if "Total" in df.columns:
         df = df.drop(columns=["Total"])
 
-    if "Curve" in df.columns:
-        df["Curve"] = pd.to_numeric(df["Curve"], errors="coerce").fillna(0)
-    else:
-        df["Curve"] = 0
+    # Optional per-student adjustments: missing column or blank cell means 0.
+    for col in ("Curve", "Extra Credit"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        else:
+            df[col] = 0
 
     return df
 

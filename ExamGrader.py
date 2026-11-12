@@ -80,12 +80,21 @@ tab_stats, tab_detail, tab_distributions = st.tabs(
 with tab_stats:
     st.caption("Aggregate statistics only — no student names appear on this tab.")
 
+    # Each toggle only appears when the selected exam actually has values for it.
     curve = graded_df["Curve"]
+    extra_credit = graded_df["Extra Credit"]
+    apply_extra_credit = False
+    if extra_credit.any():
+        apply_extra_credit = st.toggle("Apply extra credit to statistics below", value=True)
     apply_curve = False
     if curve.any():
         apply_curve = st.toggle("Apply curve to statistics below", value=False)
 
-    totals = graded_df["Total"] if apply_curve else graded_df["Total Before Curve"]
+    totals = graded_df["Raw Score"]
+    if apply_extra_credit:
+        totals = totals + extra_credit
+    if apply_curve:
+        totals = totals + curve
 
     kpis = compute_kpis(totals)
     kpi_cols = st.columns(len(kpis))
@@ -170,14 +179,13 @@ with tab_detail:
         & graded_df["Exam A or B?"].astype(str).str.upper().isin(selected_versions)
     ]
 
-    display_cols = [
-        "Student",
-        "Total Before Curve",
-        "Curve",
-        "Total",
-        "Exam A or B?",
-    ] + QUESTION_COLUMNS
-    display_df = filtered_df[display_cols]
+    # Extra credit columns only appear when this exam actually has extra credit.
+    extra_credit_cols = ["Extra Credit", "Total Before Curve"] if graded_df["Extra Credit"].any() else []
+    score_cols = ["Raw Score", *extra_credit_cols, "Curve", "Total"]
+    display_cols = ["Student", *score_cols, "Exam A or B?"] + QUESTION_COLUMNS
+    display_df = filtered_df[display_cols].copy()
+    # Curve/extra credit can be fractional; show every score column as a whole number.
+    display_df[score_cols] = display_df[score_cols].round().astype(int)
     correctness_mask = build_correctness_mask(filtered_df, keys)
 
     def _highlight_correctness(data: pd.DataFrame) -> pd.DataFrame:
@@ -198,7 +206,9 @@ with tab_detail:
         use_container_width=True,
         column_config={
             "Student": None,
-            "Total Before Curve": st.column_config.Column("Total"),
+            "Extra Credit": None,
+            "Raw Score": st.column_config.Column("Total"),
+            "Total Before Curve": st.column_config.Column("Total w Extra Credit"),
             "Total": st.column_config.Column("Total after Curve"),
         },
     )

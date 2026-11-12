@@ -19,6 +19,7 @@ One row per student.
 | `Student` | ✅ | Student's name. Only ever shown on the unmasked Student Detail tab. |
 | `Total` | ➖ | Optional — leave it out entirely, or include it and it'll be ignored. The app always recomputes this itself. |
 | `Curve` | ➖ | Optional — points to add to that student's score (e.g. `2`, or `-1`). Leave it out, or leave a cell blank, to apply no curve (defaults to `0`). Added on top of the computed raw score to produce the final `Total`. |
+| `Extra Credit` | ➖ | Optional — points of extra credit for that student (e.g. `3`). Leave it out, or leave a cell blank, for none (defaults to `0`). Always added to the student's grade, whether or not the curve is applied. Can be included on some exams' Grading sheets and left off others. |
 | `Exam A or B?` | ✅ | Literally `A` or `B` — which version this student took. |
 | `1` … `50` | ✅ | One column per question number, header is just the number. Holds the student's letter answer (`A`/`B`/`C`/`D`), or the literal text `NA` for a blank. |
 
